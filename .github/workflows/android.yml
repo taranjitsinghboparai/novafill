@@ -2,24 +2,22 @@ name: Build NovaFill APK
 
 on:
   push:
-    branches: [main]      # build every time you push to main
+    branches: [main]          # build every push to main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    # ──────────────────── 1. Check out code ────────────────────
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    # 1. Check out repo
+    - uses: actions/checkout@v4
 
-    # ──────────────────── 2. Python 3.10 ───────────────────────
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    # 2. Python 3.10
+    - uses: actions/setup-python@v4
       with:
         python-version: "3.10"
 
-    # ──────────────────── 3. OS-level deps ─────────────────────
+    # 3. OS-level deps (➕ libtool-bin)
     - name: Install system packages
       run: |
         sudo apt-get update
@@ -30,15 +28,15 @@ jobs:
           libavcodec-dev libavformat-dev libswscale-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
           libportmidi-dev libmtdev-dev xclip xsel \
-          autoconf automake libtool pkg-config    # ← fixes autoreconf error
+          autoconf automake libtool libtool-bin pkg-config    # ← critical fix
 
-    # ──────────────────── 4. Python deps / Buildozer ───────────
-    - name: Install Buildozer & Cython
+    # 4. Buildozer & Cython
+    - name: Install Buildozer
       run: |
         python -m pip install --upgrade pip
         pip install Cython buildozer
 
-    # ──────────────────── 5. Android SDK & Build-Tools (aidl) ──
+    # 5. Android SDK + Build-Tools (with compatible symlink)
     - name: Install Android SDK & Build-Tools
       run: |
         SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
@@ -48,23 +46,22 @@ jobs:
         mv "$SDK_ROOT/cmdline-tools/cmdline-tools" "$SDK_ROOT/cmdline-tools/latest"
 
         export ANDROID_SDK_ROOT="$SDK_ROOT"
-        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
-          "platform-tools" "platforms;android-31" "build-tools;31.0.0"
 
-        # make sdkmanager / aidl visible in PATH for the rest of the job
+        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
+              "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+
+        # PATH / backward-compat
         echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
         echo "$ANDROID_SDK_ROOT/platform-tools"     >> $GITHUB_PATH
         echo "$ANDROID_SDK_ROOT/build-tools/31.0.0" >> $GITHUB_PATH
-        # backward-compat symlink so Buildozer finds sdkmanager in the old path
         mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
         ln -sf "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
 
-    # ──────────────────── 6. Build the APK ─────────────────────
-    - name: Build NovaFill APK
-      run: |
-        buildozer android debug
+    # 6. Build the APK
+    - name: Build APK with Buildozer
+      run: buildozer android debug
 
-    # ──────────────────── 7. Upload artifact ───────────────────
+    # 7. Upload artefact
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
