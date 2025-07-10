@@ -2,8 +2,7 @@ name: Build NovaFill APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
@@ -13,32 +12,65 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: Install system dependencies
+      # ───────────────────────────────────────────────────────────
+      # 1) OS–level prerequisites for Buildozer / Kivy
+      # ───────────────────────────────────────────────────────────
+      - name: Install system packages
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            python3-pip zip unzip openjdk-17-jdk \
-            libffi-dev libssl-dev \
-            libjpeg-dev zlib1g-dev \
+            build-essential git zip unzip openjdk-17-jdk \
+            libffi-dev libssl-dev libjpeg-dev zlib1g-dev \
             libncurses6 libsqlite3-dev libpng-dev \
             libavcodec-dev libavformat-dev libswscale-dev \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
             libportmidi-dev libmtdev-dev xclip xsel
 
-      - name: Install buildozer and python deps
+      # ───────────────────────────────────────────────────────────
+      # 2) Install Buildozer & Python deps
+      # ───────────────────────────────────────────────────────────
+      - name: Install Buildozer & Cython
         run: |
-          python3 -m pip install --upgrade pip
-          pip install buildozer Cython
+          python -m pip install --upgrade pip
+          pip install Cython buildozer
 
-      - name: Build APK
+      # ───────────────────────────────────────────────────────────
+      # 3) Install Android SDK + Build-Tools (fixes “aidl not found”)
+      # ───────────────────────────────────────────────────────────
+      - name: Install Android SDK & Build-Tools
+        run: |
+          SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
+          TOOLS_ZIP="commandlinetools-linux-9477386_latest.zip"
+
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          curl -sSL "https://dl.google.com/android/repository/${TOOLS_ZIP}" -o tools.zip
+          unzip -q tools.zip -d "$SDK_ROOT/cmdline-tools"
+          mv "$SDK_ROOT/cmdline-tools/cmdline-tools" "$SDK_ROOT/cmdline-tools/latest"
+
+          export ANDROID_SDK_ROOT="$SDK_ROOT"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
+            "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+
+          # Make Build-Tools & Platform-Tools visible in PATH
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "$ANDROID_SDK_ROOT/platform-tools"       >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/build-tools/31.0.0"   >> $GITHUB_PATH
+
+      # ───────────────────────────────────────────────────────────
+      # 4) Build the APK
+      # ───────────────────────────────────────────────────────────
+      - name: Build NovaFill APK with Buildozer
         run: |
           buildozer android debug
 
+      # ───────────────────────────────────────────────────────────
+      # 5) Upload the APK artifact
+      # ───────────────────────────────────────────────────────────
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
