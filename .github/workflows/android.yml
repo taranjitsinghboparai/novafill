@@ -9,15 +9,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1  Checkout repo
+    # 1 ── Checkout repo ─────────────────────────────────────────
     - uses: actions/checkout@v4
 
-    # 2  Python 3.10
+    # 2 ── Python 3.10 ───────────────────────────────────────────
     - uses: actions/setup-python@v4
       with:
         python-version: "3.10"
 
-    # 3  OS-level deps  (incl. autoconf tool-chain)
+    # 3 ── OS-level deps (incl. full autotools tool-chain) ──────
     - name: Install system packages
       run: |
         sudo apt-get update
@@ -30,13 +30,13 @@ jobs:
           libportmidi-dev libmtdev-dev xclip xsel \
           autoconf automake libtool libtool-bin pkg-config
 
-    # 4  Buildozer & Cython
+    # 4 ── Buildozer & Cython ────────────────────────────────────
     - name: Install Buildozer
       run: |
         python -m pip install --upgrade pip
         pip install Cython buildozer
 
-    # 5  Android SDK + Build-Tools (aidl)
+    # 5 ── Android SDK + Build-Tools (aidl) ──────────────────────
     - name: Install Android SDK & Build-Tools
       run: |
         SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
@@ -57,15 +57,23 @@ jobs:
         ln -sf "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
                "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
 
-    # 5b  🔄 Force p4a *develop* branch by deleting old platform cache
+    # 5b ── Force python-for-android *develop* branch  ───────────
     - name: Remove cached .buildozer platform
       run: rm -rf .buildozer/android/platform
 
-    # 6  Build the APK
+    # 5c ── Pre-cache freetype 2.10.1 tarball (bypass 502 mirror) ─
+    - name: Cache freetype 2.10.1 tarball
+      run: |
+        CACHE=$HOME/.cache/python-for-android
+        mkdir -p "$CACHE"
+        curl -L -o "$CACHE/freetype-2.10.1.tar.gz" \
+          https://github.com/ubports/ubports-freetype-mirror/releases/download/v2.10.1/freetype-2.10.1.tar.gz
+
+    # 6 ── Build the APK ─────────────────────────────────────────
     - name: Build APK with Buildozer
       run: buildozer android debug
 
-    # 7  Upload artefact
+    # 7 ── Upload artifact ───────────────────────────────────────
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
