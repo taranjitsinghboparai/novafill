@@ -8,6 +8,7 @@ version = 1.1
 requirements = python3,kivy,pillow,pytesseract,reportlab
 orientation = portrait
 fullscreen = 1
+p4a.branch = develop
 
 [buildozer]
 log_level = 2
