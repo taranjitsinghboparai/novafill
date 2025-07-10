@@ -37,7 +37,7 @@ fullscreen        = 1
 # ---------------------------------------------------------------------------
 # Python-for-Android tweaks
 # ---------------------------------------------------------------------------
-p4a.branch        = develop       # use latest recipes (fixes FreeType URL)
+p4a.branch        = develop
 python_version    = 3.10          # avoids clang errors with 3.12
 env.RL_NO_ACCEL   = 1             # disable ReportLab C speedups
 
