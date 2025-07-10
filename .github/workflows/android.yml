@@ -18,12 +18,19 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
-          sudo apt update
-          sudo apt install -y python3-pip zip unzip openjdk-17-jdk libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev libgstreamer1.0 libgstreamer1.0-dev libmtdev-dev xclip xsel libjpeg-dev
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip zip unzip openjdk-17-jdk \
+            libffi-dev libssl-dev \
+            libjpeg-dev zlib1g-dev \
+            libncurses5 libsqlite3-dev libpng-dev \
+            libavcodec-dev libavformat-dev libswscale-dev \
+            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+            libportmidi-dev libmtdev-dev xclip xsel
 
-      - name: Install buildozer
+      - name: Install buildozer and python deps
         run: |
           python3 -m pip install --upgrade pip
           pip install buildozer Cython
