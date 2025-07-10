@@ -1,51 +1,35 @@
-name: Build APK
+name: Build NovaFill APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
-      - name: Set up dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y \
-            build-essential \
-            git zip unzip \
-            openjdk-17-jdk \
-            libffi-dev \
-            libssl-dev \
-            libsqlite3-dev \
-            zlib1g-dev \
-            libncurses5 \
-            libncurses5-dev \
-            libtinfo5 \
-            python3-pip
-
-      - name: Install Buildozer
-        run: |
-          pip install --upgrade pip
-          pip install cython==0.29.36
+          sudo apt install -y zip unzip openjdk-17-jdk libffi-dev libssl-dev libsqlite3-dev zlib1g-dev \
+                              autoconf automake libtool pkg-config build-essential
+          python -m pip install --upgrade pip
           pip install buildozer
 
-      - name: Build APK
+      - name: Build APK with Buildozer
         run: |
           buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NovaFill-APK
+          name: NovaFill-v1.1
           path: bin/*.apk
