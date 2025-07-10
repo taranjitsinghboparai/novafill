@@ -10,6 +10,7 @@ orientation = portrait
 fullscreen = 1
 p4a.branch = develop
 python_version = 3.10
+env.RL_NO_ACCEL = 1
 
 [buildozer]
 log_level = 2
