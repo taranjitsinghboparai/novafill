@@ -1,4 +1,4 @@
-name: Build APK
+name: Build NovaFill APK
 
 on:
   push:
@@ -10,36 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk python3-pip build-essential \
-              libffi-dev libssl-dev libsqlite3-dev zlib1g-dev libncurses5-dev libtinfo5
+          sudo apt install -y python3-pip zip unzip openjdk-17-jdk libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev libgstreamer1.0 libgstreamer1.0-dev libmtdev-dev xclip xsel libjpeg-dev
 
-      - name: Install Buildozer
+      - name: Install buildozer
         run: |
           python3 -m pip install --upgrade pip
-          pip install buildozer cython
-
-      - name: Install Android SDK & Tools
-        run: |
-          mkdir -p $HOME/.buildozer/android/platform
-          cd $HOME/.buildozer/android/platform
-          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O tools.zip
-          unzip tools.zip -d cmdline-tools
-          mkdir -p android-sdk/cmdline-tools/latest
-          mv cmdline-tools/* android-sdk/cmdline-tools/latest/
-          export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
-            "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+          pip install buildozer Cython
 
       - name: Build APK
         run: |
