@@ -25,7 +25,7 @@ jobs:
             python3-pip zip unzip openjdk-17-jdk \
             libffi-dev libssl-dev \
             libjpeg-dev zlib1g-dev \
-            libncurses5 libsqlite3-dev libpng-dev \
+            libncurses6 libsqlite3-dev libpng-dev \
             libavcodec-dev libavformat-dev libswscale-dev \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
             libportmidi-dev libmtdev-dev xclip xsel
