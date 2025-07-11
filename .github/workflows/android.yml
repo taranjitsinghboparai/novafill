@@ -7,36 +7,36 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40          # avoid endless jobs
 
     steps:
-    # 1 ── Checkout
+    # 1  checkout
     - uses: actions/checkout@v4
 
-    # 2 ── Python 3.10 (works with p4a + NDK r25)
+    # 2  Python 3.10
     - uses: actions/setup-python@v4
-      with: { python-version: "3.10" }
+      with:
+        python-version: "3.10"
 
-    # 3 ── All system deps (full autotools + ltdl + gettext + m4)
+    # 3  Linux build dependencies
     - name: Install system packages
       run: |
         sudo apt-get update
         sudo apt-get install -y \
           build-essential git zip unzip openjdk-17-jdk \
-          libffi-dev libssl-dev libjpeg-dev zlib1g-dev libpng-dev \
-          libncurses6 libsqlite3-dev libavcodec-dev libavformat-dev libswscale-dev \
+          libffi-dev libssl-dev libjpeg-dev zlib1g-dev \
+          libncurses6 libsqlite3-dev libpng-dev \
+          libavcodec-dev libavformat-dev libswscale-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
           libportmidi-dev libmtdev-dev xclip xsel \
-          autoconf automake libtool libtool-bin libltdl-dev m4 gettext \
-          pkg-config clang
+          autoconf automake libtool libtool-bin pkg-config
 
-    # 4 ── Buildozer & Cython
+    # 4  Buildozer + Cython
     - name: Install Buildozer
       run: |
-        python -m pip install --upgrade pip
-        pip install Cython==0.29.37 buildozer
+        python -m pip install -U pip
+        pip install "buildozer~=1.5" Cython
 
-    # 5 ── Android SDK & Build-Tools (31) + legacy symlink
+    # 5  Android SDK / build-tools 31
     - name: Install Android SDK & Build-Tools
       run: |
         SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
@@ -44,37 +44,32 @@ jobs:
         curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -o tools.zip
         unzip -q tools.zip -d "$SDK_ROOT/cmdline-tools"
         mv "$SDK_ROOT/cmdline-tools/cmdline-tools" "$SDK_ROOT/cmdline-tools/latest"
-        export ANDROID_SDK_ROOT="$SDK_ROOT"
-        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
-              "platform-tools" "platforms;android-31" "build-tools;31.0.0"
-        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-        echo "$ANDROID_SDK_ROOT/platform-tools"   >> $GITHUB_PATH
-        echo "$ANDROID_SDK_ROOT/build-tools/31.0.0" >> $GITHUB_PATH
-        mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
-        ln -sf "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
-               "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
 
-    # 5b ── Force fresh p4a develop checkout each run
-    - name: Remove cached .buildozer platform
+        echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
+        echo "$SDK_ROOT/platform-tools"     >> $GITHUB_PATH
+        echo "$SDK_ROOT/build-tools/31.0.0" >> $GITHUB_PATH
+
+        yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+               --sdk_root="$SDK_ROOT" \
+               "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+
+    # 6  (optional) keep the cache clean between runs
+    - name: Zap stale .buildozer platform dir
       run: rm -rf .buildozer/android/platform
 
-    # 5c ── Cache FreeType 2.10.1 tarball to bypass Savannah 502
-    - name: Cache freetype 2.10.1
-      run: |
-        CACHE=$HOME/.cache/python-for-android
-        mkdir -p "$CACHE"
-        curl -L -o "$CACHE/freetype-2.10.1.tar.gz" \
-          https://github.com/ubports/ubports-freetype-mirror/releases/download/v2.10.1/freetype-2.10.1.tar.gz
-
-    # 6 ── Build APK (suppress deprecated-declarations = errors)
+    # 7  ⚡ build APK
     - name: Build APK with Buildozer
       run: |
+        # ① deprecation warnings → warnings
         export CFLAGS="-Wno-error=deprecated-declarations"
         export CXXFLAGS="-Wno-error=deprecated-declarations"
+        # ② tell ReportLab to *skip* its native _rl_accel
+        export REPORTLAB_NO_C_EXTENSION=1
         buildozer android debug
 
-    # 7 ── Upload artifact
-    - uses: actions/upload-artifact@v4
+    # 8  upload result
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
       with:
         name: NovaFill-APK
         path: bin/*.apk
