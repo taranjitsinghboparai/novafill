@@ -27,7 +27,7 @@ orientation      = portrait
 fullscreen       = 1
 
 # ── python-for-android tweaks ───────────────────────────────────────────────
-p4a.branch       = develop        # latest recipes
+p4a.branch       = develop
 env.RL_NO_ACCEL  = 1              # build ReportLab pure-Python
 
 [buildozer]
