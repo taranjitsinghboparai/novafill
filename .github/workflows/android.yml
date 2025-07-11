@@ -9,15 +9,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1  checkout
+    # 1 ─ checkout
     - uses: actions/checkout@v4
 
-    # 2  Python 3.10
+    # 2 ─ Python 3.10
     - uses: actions/setup-python@v4
       with:
         python-version: "3.10"
 
-    # 3  Linux build dependencies
+    # 3 ─ Linux build dependencies
     - name: Install system packages
       run: |
         sudo apt-get update
@@ -30,44 +30,46 @@ jobs:
           libportmidi-dev libmtdev-dev xclip xsel \
           autoconf automake libtool libtool-bin pkg-config
 
-    # 4  Buildozer + Cython
+    # 4 ─ Buildozer + Cython
     - name: Install Buildozer
       run: |
         python -m pip install -U pip
         pip install "buildozer~=1.5" Cython
 
-    # 5  Android SDK / build-tools 31
+    # 5 ─ Android SDK & Build-Tools 31 (+legacy sdkmanager alias)
     - name: Install Android SDK & Build-Tools
       run: |
-        SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
-        mkdir -p "$SDK_ROOT/cmdline-tools"
+        SDK="$HOME/.buildozer/android/platform/android-sdk"
+        mkdir -p "$SDK/cmdline-tools"
         curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -o tools.zip
-        unzip -q tools.zip -d "$SDK_ROOT/cmdline-tools"
-        mv "$SDK_ROOT/cmdline-tools/cmdline-tools" "$SDK_ROOT/cmdline-tools/latest"
+        unzip -q tools.zip -d "$SDK/cmdline-tools"
+        mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
 
-        echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
-        echo "$SDK_ROOT/platform-tools"     >> $GITHUB_PATH
-        echo "$SDK_ROOT/build-tools/31.0.0" >> $GITHUB_PATH
+        echo "ANDROID_SDK_ROOT=$SDK"       >> $GITHUB_ENV
+        echo "$SDK/platform-tools"         >> $GITHUB_PATH
+        echo "$SDK/build-tools/31.0.0"     >> $GITHUB_PATH
 
-        yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
-               --sdk_root="$SDK_ROOT" \
-               "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+        yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+              --sdk_root="$SDK" \
+              "platform-tools" "platforms;android-31" "build-tools;31.0.0"
 
-    # 6  (optional) keep the cache clean between runs
+        # ⇢ Buildozer still expects $SDK/tools/bin/sdkmanager
+        mkdir -p "$SDK/tools/bin"
+        ln -sf "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK/tools/bin/sdkmanager"
+
+    # 6 ─ clean stale platform cache (optional)
     - name: Zap stale .buildozer platform dir
       run: rm -rf .buildozer/android/platform
 
-    # 7  ⚡ build APK
+    # 7 ─ build APK
     - name: Build APK with Buildozer
       run: |
-        # ① deprecation warnings → warnings
         export CFLAGS="-Wno-error=deprecated-declarations"
         export CXXFLAGS="-Wno-error=deprecated-declarations"
-        # ② tell ReportLab to *skip* its native _rl_accel
         export REPORTLAB_NO_C_EXTENSION=1
         buildozer android debug
 
-    # 8  upload result
+    # 8 ─ upload artefact
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
